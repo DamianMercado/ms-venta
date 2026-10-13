@@ -1,0 +1,42 @@
+services:
+  mysql-venta:
+    image: mysql:8.0
+    container_name: mysql-venta
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-ventadb}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+    ports:
+      - "${MYSQL_PORT:-3311}:3306"
+    volumes:
+      - mysql_venta_data:/var/lib/mysql
+    networks:
+      - pasteleria-network
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  ms-venta:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ms-venta
+    restart: unless-stopped
+    ports:
+      - "${SERVER_PORT:-8083}:${SERVER_PORT:-8083}"
+    env_file:
+      - .env
+    depends_on:
+      mysql-venta:
+        condition: service_healthy
+    networks:
+      - pasteleria-network
+
+networks:
+  pasteleria-network:
+    external: true
+
+volumes:
+  mysql_venta_data:
